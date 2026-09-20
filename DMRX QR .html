@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DMRX QR — Create a UPI payment link</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#0B2320;
+    --panel:#123832;
+    --panel-2:#0E2E29;
+    --panel-line:#1F5148;
+    --ink-text:#F4F1E8;
+    --muted-dark:#9FB9B1;
+
+    --paper:#FBF3E4;
+    --paper-2:#F3E9D4;
+    --paper-line:#E1D0A9;
+    --paper-text:#2B2318;
+    --muted-paper:#8A7A5C;
+
+    --accent:#E3A73E;
+    --accent-2:#C98524;
+    --jade:#3AA285;
+    --red:#C85A48;
+
+    --radius-panel:22px;
+    --radius-field:11px;
+    --radius-pill:999px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% -10%, #1c5b4f55, transparent 40%),
+      radial-gradient(circle at 100% 10%, #E3A73E22, transparent 35%),
+      var(--ink);
+    color:var(--ink-text);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    -webkit-font-smoothing:antialiased;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+
+  .page{
+    width:min(480px,92%);
+    margin:0 auto;
+    padding:32px 0 56px;
+  }
+
+  /* header */
+  .masthead{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+  .mark{
+    flex:0 0 auto;
+    width:46px;height:46px;border-radius:14px;
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));
+    display:grid;place-items:center;
+    font-size:22px;font-weight:700;color:#241704;
+    box-shadow:0 8px 20px #0006;
+  }
+  .masthead h1{
+    margin:0;font-family:'Fraunces',Georgia,serif;font-weight:600;
+    font-size:26px;letter-spacing:.2px;color:var(--ink-text);
+  }
+  .masthead p{margin:2px 0 0;font-size:13px;color:var(--muted-dark)}
+
+  /* ticket / form panel */
+  .ticket{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:var(--radius-panel);
+    padding:22px 20px 24px;
+  }
+  .ticket-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+  .ticket-top h2{margin:0;font-size:17px;font-weight:600;color:var(--ink-text)}
+  .badge{
+    font-size:11px;font-weight:700;color:var(--ink);
+    background:var(--jade);padding:3px 9px;border-radius:var(--radius-pill);
+  }
+
+  .field{margin-bottom:16px}
+  .field label{
+    display:block;font-size:12.5px;font-weight:600;color:var(--muted-dark);
+    margin-bottom:7px;
+  }
+  .field input{
+    width:100%;padding:12px 13px;border-radius:var(--radius-field);
+    border:1px solid var(--panel-line);background:var(--panel-2);
+    color:var(--ink-text);font-family:inherit;font-size:15px;outline:0;
+  }
+  .field input::placeholder{color:#5f7d76}
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #e3a73e2b}
+
+  .amount-field .amount-input{
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel-2);border:1px solid var(--panel-line);
+    border-radius:var(--radius-field);padding:6px 13px;
+  }
+  .amount-field .amount-input:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px #e3a73e2b}
+  .amount-input .rupee{font-size:22px;color:var(--accent);font-weight:600}
+  .amount-input input{
+    border:0;background:transparent;padding:8px 0;font-size:26px;font-weight:700;
+    font-variant-numeric:tabular-nums;color:var(--ink-text);
+  }
+  .amount-input input:focus{box-shadow:none}
+
+  .presets{
+    display:flex;flex-wrap:nowrap;gap:8px;margin-top:10px;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .presets::-webkit-scrollbar{display:none}
+  .preset{
+    flex:0 0 auto;white-space:nowrap;
+    padding:8px 13px;border-radius:var(--radius-pill);
+    border:1px solid var(--panel-line);background:transparent;color:var(--muted-dark);
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .preset.active{background:var(--accent);border-color:var(--accent);color:#241704}
+
+  .generate{
+    width:100%;padding:15px;margin-top:6px;border:0;border-radius:var(--radius-pill);
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));
+    color:#241704;font-family:inherit;font-weight:700;font-size:15.5px;cursor:pointer;
+    box-shadow:0 10px 24px #c985241f;
+  }
+  .generate:active{transform:translateY(1px)}
+  .hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted-dark);line-height:1.5}
+
+  /* torn edge */
+  .torn{
+    height:16px;background:var(--paper);
+    clip-path:polygon(0% 100%,4% 0%,8% 100%,12% 0%,16% 100%,20% 0%,24% 100%,28% 0%,32% 100%,36% 0%,40% 100%,44% 0%,48% 100%,52% 0%,56% 100%,60% 0%,64% 100%,68% 0%,72% 100%,76% 0%,80% 100%,84% 0%,88% 100%,92% 0%,96% 100%,100% 0%,100% 100%);
+    margin:6px 6px -1px;
+  }
+
+  /* receipt */
+  .receipt{
+    background:var(--paper);
+    color:var(--paper-text);
+    border-radius:0 0 14px 14px;
+    margin:0 6px;
+    padding:26px 22px 22px;
+    text-align:center;
+  }
+  .receipt.is-empty{padding:34px 22px 30px}
+  .empty-mark{
+    width:56px;height:56px;margin:0 auto 14px;border-radius:14px;
+    border:1.5px dashed var(--paper-line);display:grid;place-items:center;
+    font-size:24px;color:var(--muted-paper);
+  }
+  .empty-copy{font-size:14px;color:var(--muted-paper);max-width:280px;margin:0 auto;line-height:1.55}
+
+  .receipt-body{display:none}
+  .receipt.is-filled .receipt-body{display:block}
+  .receipt.is-filled .empty-state{display:none}
+
+  .qrbox{
+    background:#fff;display:inline-block;padding:14px;border-radius:16px;
+    box-shadow:0 6px 18px #0000000f;margin-bottom:16px;cursor:pointer;
+  }
+  .qrbox:active{transform:scale(.98)}
+  .qr{width:200px;height:200px}
+  .qr canvas, .qr img{width:100% !important;height:100% !important;image-rendering:auto}
+
+  .qr-lightbox{
+    position:fixed;inset:0;background:#0B2320;display:none;
+    align-items:center;justify-content:center;z-index:999;padding:24px;
+    padding-top:calc(24px + env(safe-area-inset-top,0px));
+    padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  }
+  .qr-lightbox.show{display:flex}
+  .qr-lightbox img{
+    width:min(78vw,360px);height:min(78vw,360px);background:#fff;
+    border-radius:20px;padding:20px;box-shadow:0 20px 60px #0008;
+  }
+  .r-name{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:19px;overflow-wrap:anywhere}
+  .r-upi{font-size:12.5px;color:var(--muted-paper);margin-top:3px;overflow-wrap:anywhere}
+  .r-amount{
+    font-size:34px;font-weight:700;color:var(--panel);margin-top:10px;
+    font-variant-numeric:tabular-nums;
+  }
+  .r-note{font-size:13px;color:var(--muted-paper);margin-top:4px}
+  .r-status{font-size:12px;color:var(--jade);margin-top:12px;font-weight:600}
+
+  .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .actions button{
+    padding:10px 14px;border-radius:var(--radius-pill);
+    border:1px solid var(--paper-line);background:#fff;color:var(--paper-text);
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .actions button:active{transform:translateY(1px)}
+
+  @keyframes reveal{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .receipt.just-generated .receipt-body{animation:reveal .35s ease}
+
+  /* history */
+  .history{margin-top:26px}
+  .history-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .history-head h2{margin:0;font-size:15px;font-weight:600;color:var(--ink-text)}
+  .history-head button{
+    background:none;border:0;color:var(--muted-dark);font-family:inherit;
+    font-size:12.5px;cursor:pointer;text-decoration:underline;
+  }
+  .records{display:grid;gap:8px}
+  .record{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:12px 14px;border:1px solid var(--panel-line);border-radius:13px;background:var(--panel);
+  }
+  .record .r-info b{font-size:14px;font-variant-numeric:tabular-nums}
+  .record .r-info small{display:block;color:var(--muted-dark);margin-top:3px;font-size:12px}
+  .record button{
+    flex:0 0 auto;background:var(--panel-2);color:var(--ink-text);border:1px solid var(--panel-line);
+    border-radius:var(--radius-pill);padding:7px 12px;font-family:inherit;font-size:12.5px;cursor:pointer;
+  }
+  .empty-history{text-align:center;color:var(--muted-dark);font-size:13px;padding:16px;border:1px dashed var(--panel-line);border-radius:13px}
+
+  footer.note{text-align:center;color:var(--muted-dark);font-size:11.5px;margin-top:28px;line-height:1.6}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    transform:translate(-50%,90px);opacity:0;transition:.25s;
+    background:var(--panel-2);border:1px solid var(--panel-line);color:var(--ink-text);
+    padding:11px 16px;border-radius:12px;font-size:13.5px;
+  }
+  .toast.show{transform:translate(-50%,0);opacity:1}
+
+  @media (max-width:380px){
+    .qr{width:170px;height:170px}
+    .r-amount{font-size:29px}
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="mark">₹</div>
+    <div>
+      <h1>DMRX QR</h1>
+      <p>Turn any amount into a scan-and-pay link</p>
+    </div>
+  </header>
+
+  <section class="ticket">
+    <div class="ticket-top">
+      <h2>Create a payment link</h2>
+      <span class="badge">INR</span>
+    </div>
+
+    <div class="field">
+      <label for="upi">UPI ID</label>
+      <input id="upi" placeholder="shopname@bank" inputmode="email">
+    </div>
+
+    <div class="field">
+      <label for="name">Shop or payee name</label>
+      <input id="name" placeholder="Your shop name" maxlength="60">
+    </div>
+
+    <div class="field amount-field">
+      <label for="amount">Amount to collect</label>
+      <div class="amount-input">
+        <span class="rupee">₹</span>
+        <input id="amount" type="number" min="1" max="1000000" step="0.01" placeholder="0.00" inputmode="decimal">
+      </div>
+      <div class="presets" id="presets">
+        <button class="preset" data-v="50">₹50</button>
+        <button class="preset" data-v="100">₹100</button>
+        <button class="preset" data-v="200">₹200</button>
+        <button class="preset" data-v="500">₹500</button>
+        <button class="preset" data-v="1000">₹1000</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="note">Note (optional)</label>
+      <input id="note" maxlength="80" placeholder="What's this for?">
+    </div>
+
+    <button class="generate" id="generateBtn">Generate QR</button>
+    <p class="hint">Check the payee name and amount in your UPI app before you accept the payment.</p>
+  </section>
+
+  <div class="torn" aria-hidden="true"></div>
+
+  <section class="receipt is-empty" id="receipt">
+    <div class="empty-state">
+      <div class="empty-mark">▦</div>
+      <p class="empty-copy">Fill in the details above and your payment QR will print here, ready to show a customer.</p>
+    </div>
+    <div class="receipt-body">
+      <div class="qrbox" id="qrbox" title="Tap to view QR full-screen"><div id="qr" class="qr"></div></div>
+      <div class="r-name" id="rName">Your shop name</div>
+      <div class="r-upi" id="rUpi">your-upi@bank</div>
+      <div class="r-amount" id="rAmount">₹0.00</div>
+      <div class="r-note" id="rNote"></div>
+      <div class="r-status">Verify this in your UPI app before accepting payment</div>
+      <div class="actions">
+        <button id="downloadBtn">Download QR</button>
+        <button id="copyBtn">Copy link</button>
+        <button id="shareBtn">Share</button>
+        <button id="printBtn">Print receipt</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="history">
+    <div class="history-head">
+      <h2>Recent links</h2>
+      <button id="clearBtn">Clear all</button>
+    </div>
+    <div class="records" id="records">
+      <div class="empty-history">Links you generate will be saved here for quick reuse.</div>
+    </div>
+  </section>
+
+  <footer class="note">DMRX QR runs entirely in your browser. No payment credentials are ever stored or sent anywhere.</footer>
+</main>
+
+<div class="qr-lightbox" id="qrLightbox"><img id="qrLightboxImg" alt="Payment QR code"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = "dmrx-qr-history";
+  const UPI_KEY = "dmrx-default-upi";
+  let currentLink = "", current = null;
+
+  function loadDefaultUpi(){
+    try {
+      const saved = localStorage.getItem(UPI_KEY);
+      if(saved) $("upi").value = saved;
+    } catch(e){}
+  }
+
+  function saveDefaultUpi(upi){
+    try { localStorage.setItem(UPI_KEY, upi); } catch(e){}
+  }
+
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  function readForm(){
+    return {
+      upi: $("upi").value.trim(),
+      name: $("name").value.trim() || "UPI Merchant",
+      amount: Number($("amount").value),
+      note: $("note").value.trim()
+    };
+  }
+
+  function validate(d){
+    if(!d.upi || !/^[^\s@]+@[^\s@]+$/.test(d.upi)) return "Add a valid UPI ID, like shopname@bank.";
+    const domain = d.upi.split("@")[1] || "";
+    if(domain.includes(".")) return "That looks like an email address, not a UPI ID. UPI IDs look like name@okhdfcbank, name@ybl, or name@paytm.";
+    if(!d.amount || d.amount < 1 || d.amount > 1000000) return "Enter an amount between ₹1 and ₹10,00,000.";
+    return "";
+  }
+
+  function buildLink(d){
+    const p = new URLSearchParams({ pa: d.upi, pn: d.name, am: d.amount.toFixed(2), cu: "INR" });
+    if(d.note) p.set("tn", d.note);
+    return "upi://pay?" + p.toString();
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function getQrDataUrl(){
+    const canvas = $("qr").querySelector("canvas");
+    if(canvas) return canvas.toDataURL("image/png");
+    const img = $("qr").querySelector("img");
+    if(img && img.src && img.src.indexOf("data:") === 0) return img.src;
+    return null;
+  }
+
+  function generate(){
+    const d = readForm();
+    const err = validate(d);
+    if(err) return toast(err);
+
+    current = d;
+    currentLink = buildLink(d);
+
+    $("qr").innerHTML = "";
+    new QRCode($("qr"), { text: currentLink, width: 720, height: 720, correctLevel: QRCode.CorrectLevel.H });
+
+    $("rName").textContent = d.name;
+    $("rUpi").textContent = d.upi;
+    $("rAmount").textContent = "₹" + d.amount.toFixed(2);
+    $("rNote").textContent = d.note;
+
+    const receipt = $("receipt");
+    receipt.classList.remove("is-empty");
+    receipt.classList.add("is-filled", "just-generated");
+    setTimeout(()=>receipt.classList.remove("just-generated"), 400);
+
+    save(d);
+    saveDefaultUpi(d.upi);
+    toast("QR generated");
+  }
+
+  function save(d){
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e){ list = []; }
+    list = [{ ...d, time: new Date().toLocaleString("en-IN") }, ...list.filter(x => !(x.upi === d.upi && x.amount === d.amount && x.note === d.note))].slice(0, 8);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch(e){}
+    render();
+  }
+
+  function render(){
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e){ list = []; }
+    const box = $("records");
+    if(!list.length){
+      box.innerHTML = '<div class="empty-history">Links you generate will be saved here for quick reuse.</div>';
+      return;
+    }
+    box.innerHTML = list.map((r, i) => `
+      <div class="record">
+        <div class="r-info">
+          <b>₹${Number(r.amount).toFixed(2)} · ${esc(r.name)}</b>
+          <small>${esc(r.upi)} · ${esc(r.time)}</small>
+        </div>
+        <button data-i="${i}">Use again</button>
+      </div>`).join("");
+    box.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        const r = list[+btn.dataset.i];
+        $("upi").value = r.upi;
+        $("name").value = r.name;
+        $("amount").value = r.amount;
+        $("note").value = r.note;
+        generate();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+  }
+
+  async function copyText(text){
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Link copied");
+    } catch(e){
+      const a = document.createElement("textarea");
+      a.value = text; a.style.position = "fixed"; a.style.opacity = "0";
+      document.body.appendChild(a); a.focus(); a.select();
+      try { document.execCommand("copy"); toast("Link copied"); }
+      catch(e2){ prompt("Copy this link:", text); }
+      a.remove();
+    }
+  }
+
+  $("qrbox").onclick = () => {
+    const dataUrl = getQrDataUrl();
+    if(!dataUrl) return;
+    $("qrLightboxImg").src = dataUrl;
+    $("qrLightbox").classList.add("show");
+  };
+  $("qrLightbox").onclick = () => $("qrLightbox").classList.remove("show");
+
+  $("generateBtn").onclick = generate;
+
+  document.querySelectorAll(".preset").forEach(btn => {
+    btn.onclick = () => {
+      $("amount").value = btn.dataset.v;
+      document.querySelectorAll(".preset").forEach(b => b.classList.toggle("active", b === btn));
+    };
+  });
+
+  $("copyBtn").onclick = () => currentLink ? copyText(currentLink) : toast("Generate a QR first.");
+
+  $("downloadBtn").onclick = () => {
+    const dataUrl = getQrDataUrl();
+    if(!dataUrl) return toast("Generate a QR first.");
+    const safeName = (current.name || "qr").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `dmrx-qr-${safeName}-${current.amount}.png`;
+    a.click();
+  };
+
+  $("shareBtn").onclick = async () => {
+    if(!currentLink) return toast("Generate a QR first.");
+    if(navigator.share){
+      try { await navigator.share({ title: "UPI payment link", text: currentLink }); }
+      catch(e){}
+    } else {
+      copyText(currentLink);
+    }
+  };
+
+  $("printBtn").onclick = () => {
+    if(!current) return toast("Generate a QR first.");
+    const w = window.open("", "_blank");
+    if(!w) return toast("Allow pop-ups to print the receipt.");
+    w.document.write(`
+      <html><head><title>Payment receipt</title>
+      <style>
+        body{font-family:Georgia,serif;text-align:center;padding:48px;color:#2B2318}
+        h1{font-size:15px;letter-spacing:.5px;color:#8A7A5C;margin-bottom:4px;font-weight:600}
+        h2{font-size:22px;margin:0 0 6px}
+        p{margin:2px 0;color:#5b5347}
+        .amt{font-size:40px;font-weight:700;margin:22px 0;color:#0B2320}
+        button{margin-top:26px;padding:10px 18px;border-radius:999px;border:1px solid #ccc;background:#fff;cursor:pointer;font-family:sans-serif}
+      </style></head>
+      <body>
+        <h1>Payment receipt</h1>
+        <h2>${esc(current.name)}</h2>
+        <p>${esc(current.upi)}</p>
+        <div class="amt">₹${current.amount.toFixed(2)}</div>
+        <p>${esc(current.note || "UPI payment")}</p>
+        <button onclick="print()">Print or save as PDF</button>
+      </body></html>`);
+    w.document.close();
+  };
+
+  $("clearBtn").onclick = () => {
+    try { localStorage.removeItem(KEY); } catch(e){}
+    render();
+    toast("History cleared");
+  };
+
+  loadDefaultUpi();
+  render();
+})();
+</script>
+</body>
+</html>
