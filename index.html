@@ -381,11 +381,24 @@
   }
 
   function getQrDataUrl(){
-    const canvas = $("qr").querySelector("canvas");
-    if(canvas) return canvas.toDataURL("image/png");
-    const img = $("qr").querySelector("img");
-    if(img && img.src && img.src.indexOf("data:") === 0) return img.src;
-    return null;
+    let source = $("qr").querySelector("canvas");
+    if(!source){
+      const img = $("qr").querySelector("img");
+      if(!(img && img.src && img.src.indexOf("data:") === 0)) return null;
+      source = img;
+    }
+    const w = source.naturalWidth || source.width;
+    const h = source.naturalHeight || source.height;
+    const margin = Math.round(Math.max(w, h) * 0.14); // quiet zone so scanners can read it once it's on its own
+    const out = document.createElement("canvas");
+    out.width = w + margin * 2;
+    out.height = h + margin * 2;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(source, margin, margin, w, h);
+    return out.toDataURL("image/png");
   }
 
   function generate(){
